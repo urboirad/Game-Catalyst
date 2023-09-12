@@ -1,2 +1,2 @@
-# Game-Catalyst
+# Game Catalyst
 Lightweight game launcher
