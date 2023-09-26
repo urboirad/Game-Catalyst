@@ -1,5 +1,6 @@
 import pygame
 import pygame_gui
+from pygame_gui.elements import UIButton
 import requests
 import winapps
 import re
@@ -14,11 +15,12 @@ version = '0.0.0'
 #version = response.json()["name"]
 
 class Game:
-    def __init__(self, name, version, client, source):
+    def __init__(self, name, version, client, source, visual):
         self.name = name
         self.version = version
         self.client = client
         self.source = source
+        self.visual = visual
         
 pygame.init()
 pygame.font.init()
@@ -33,9 +35,10 @@ font = pygame.font.SysFont('Small Font', 30)
 
 button_layout_rect = pygame.Rect(10, 20, 100, 20)
 
-hello_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 275), (100, 50)), text='Say Hello', manager=manager)
+#hello_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 275), (100, 50)), text='Say Hello', manager=manager)
 
 games = []
+games_buttons = []
 
 # texts
 txt_title = font.render('GAME-CATALYST '+'('+version+')' , False, (255,255,255))
@@ -44,7 +47,8 @@ txt_title = font.render('GAME-CATALYST '+'('+version+')' , False, (255,255,255))
 # Search for games
 for app in winapps.list_installed():
     if re.search(r'steam', str(app.install_location)):
-        x = Game(str(app.name), str(app.version), 'Steam', app.install_location)
+        vis = str(app.name)+' - '+str(app.publisher)+' - [ STEAM ]'
+        x = Game(str(app.name), str(app.version), 'Steam', app.install_location, vis)
         games.append(x)
 
 # Check if no games are found        
@@ -52,7 +56,8 @@ if games == []:
     print('No games found...')
 else:
     for x in games:
-        print(x.name+' - '+x.client+' - '+str(x.source))
+        #print(x.name+' - '+x.client+' - '+str(x.source))
+        pass
         
 # Create buttons
 button_width = 500
@@ -61,10 +66,27 @@ button_spacing = 20
 total_button_height = len(games)*(button_height+button_spacing)
 
 for index, item in enumerate(games):
-    y = (screen_h - total_button_height) // 2, y, button_width, button_height), text=item.name, manager=manager, container=None,object_id="#menu_button")
+    y = (screen_h - total_button_height) // 2 + index * (button_height + button_spacing)
+    button = UIButton(
+        relative_rect=pygame.Rect((screen_w - button_width) // 2, y, button_width, button_height),
+        text=item.visual,
+        manager=manager,
+        container=None,
+        object_id="#menu_button",
+    )
+    games_buttons.append(button)
     
 def open_game(item):
-        
+    print(f"Selected: {item}")
+    base = str(os.path.basename(item.source))
+    files_in_dir = os.listdir(item.source)
+    exe_file = [file for file in files_in_dir if file.lower().endswith('.exe')]
+    to_ext = exe_file[0]
+    to_pre = os.path.join(item.source, to_ext)
+    to_str = str(to_pre)
+    to = Path(to_str)
+    print(to)
+    subprocess.call(to)
         
 while True:
     time_delta = clock.tick(60)/1000.0
@@ -74,15 +96,10 @@ while True:
             exit()
             
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
-              if event.ui_element == hello_button:
-                  base = str(os.path.basename(games[0].source))
-                  to_ext = base+'.exe'
-                  to_pre = os.path.join(games[0].source, to_ext)
-                  to_str = str(to_pre)
-                  to = Path(to_str)
-                  print(to)
-                  subprocess.call(to)
-                  #print('Hello World!')
+            for button, game in zip(games_buttons, games):
+                if event.ui_element == button:
+                    selected_item = game  # Pass the Game object associated with the button
+                    open_game(selected_item)
             
         manager.process_events(event)
 
